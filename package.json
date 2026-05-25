@@ -1,0 +1,16 @@
+{
+  "name": "solana-memecoin-bot",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node src/server.js",
+    "scan": "node src/index.js scan",
+    "paper": "node src/index.js paper",
+    "status": "node src/index.js status"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

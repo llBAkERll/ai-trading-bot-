@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Solana Memecoin AI Bot</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="hero">
+        <div>
+          <p class="eyebrow">Solana Memecoin AI</p>
+          <h1>Paper-trade live Solana tokens before going Pro.</h1>
+          <p class="hero-copy">
+            Demo users get a $1,000 simulated balance, live market data, and AI-scored entries/exits. Pro is the planned $200/month tier for wallet-connected automation after safety review.
+          </p>
+        </div>
+        <div class="wallet-panel">
+          <p class="panel-label">Wallet</p>
+          <strong id="walletStatus">Not connected</strong>
+          <button id="connectWallet">Connect Phantom</button>
+        </div>
+      </section>
+
+      <section class="metrics-grid">
+        <article>
+          <span>Demo cash</span>
+          <strong id="cash">$1,000.00</strong>
+        </article>
+        <article>
+          <span>Open value</span>
+          <strong id="openValue">$0.00</strong>
+        </article>
+        <article>
+          <span>Demo equity</span>
+          <strong id="equity">$1,000.00</strong>
+        </article>
+        <article>
+          <span>Closed PnL</span>
+          <strong id="closedPnl">$0.00</strong>
+        </article>
+      </section>
+
+      <section class="control-row">
+        <div>
+          <h2>AI Demo Bot</h2>
+          <p>The demo bot scans live Solana pairs, paper-buys top candidates, and paper-sells on take-profit, stop-loss, or trailing-stop rules.</p>
+        </div>
+        <div class="button-row">
+          <button id="openRiskMenu">Start auto demo</button>
+          <button id="stopAuto" class="ghost">Stop auto</button>
+          <button id="resetDemo" class="ghost">Reset demo</button>
+        </div>
+      </section>
+      <section class="auto-strip">
+        <div>
+          <span>Auto status</span>
+          <strong id="autoStatus">Stopped</strong>
+        </div>
+        <div>
+          <span>Last cycle</span>
+          <strong id="lastCycle">Never</strong>
+        </div>
+        <div>
+          <span>Latest action</span>
+          <strong id="latestAction">Waiting</strong>
+        </div>
+      </section>
+
+      <section class="layout-grid">
+        <div class="panel">
+          <div class="section-header">
+            <div>
+              <p class="panel-label">Live market</p>
+              <h2>Tradable Solana tokens</h2>
+            </div>
+            <button id="refreshMarket" class="ghost">Refresh</button>
+          </div>
+          <div class="table-wrap market-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Token</th>
+                  <th>Score</th>
+                  <th>Price</th>
+                  <th>Liquidity</th>
+                  <th>24h Vol</th>
+                  <th>5m</th>
+                  <th>Evaluation</th>
+                </tr>
+              </thead>
+              <tbody id="marketRows"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <aside class="panel pro-panel">
+          <p class="panel-label">Pro membership</p>
+          <h2>$200/month</h2>
+          <ul>
+            <li>Wallet-connected account</li>
+            <li>AI strategy automation controls</li>
+            <li>Risk caps, kill switch, and trade logs</li>
+            <li>Live execution adapter after approval</li>
+          </ul>
+          <button id="upgradePro">Upgrade to Pro</button>
+          <p id="checkoutStatus" class="status-text"></p>
+        </aside>
+      </section>
+
+      <section class="panel">
+        <div class="section-header">
+          <div>
+            <p class="panel-label">Demo portfolio</p>
+            <h2>Open paper positions</h2>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Token</th>
+                <th>Entry price</th>
+                <th>Current price</th>
+                <th>Invested</th>
+                <th>Current worth</th>
+                <th>PnL</th>
+                <th>Bot plan</th>
+              </tr>
+            </thead>
+            <tbody id="positionRows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="section-header">
+          <div>
+            <p class="panel-label">Bot activity</p>
+            <h2>Automatic paper buys and sells</h2>
+          </div>
+        </div>
+        <div id="eventFeed" class="event-feed"></div>
+      </section>
+
+      <section class="panel">
+        <div class="section-header">
+          <div>
+            <p class="panel-label">Risk memory</p>
+            <h2>Tokens the bot is avoiding</h2>
+          </div>
+        </div>
+        <div id="avoidFeed" class="event-feed"></div>
+      </section>
+
+      <div id="riskModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="riskTitle">
+        <div class="modal-card">
+          <div class="section-header">
+            <div>
+              <p class="panel-label">Risk settings</p>
+              <h2 id="riskTitle">Choose how the AI trades</h2>
+            </div>
+            <button id="closeRiskMenu" class="ghost">Close</button>
+          </div>
+          <div class="risk-grid">
+            <button class="risk-card" data-risk="safest">
+              <strong>Safest</strong>
+              <span>Strict liquidity and volume filters, smallest positions, fastest rug exits.</span>
+            </button>
+            <button class="risk-card" data-risk="moderate">
+              <strong>Moderate</strong>
+              <span>Balanced exposure for frequent, fee-aware scalps.</span>
+            </button>
+            <button class="risk-card" data-risk="aggressive">
+              <strong>Aggressive</strong>
+              <span>More exposure and wider targets while still enforcing stops, fees, and cooldowns.</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
+    <script src="/app.js"></script>
+  </body>
+</html>
