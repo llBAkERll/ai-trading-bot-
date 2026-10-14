@@ -1,4 +1,5 @@
 import http from "node:http";
+import {liveReadiness} from "./astra6-live-readiness.js";
 import {runAstraCycle} from "./astra6-runner.js";
 import fs from "node:fs";
 import path from "node:path";
@@ -102,6 +103,8 @@ function autoStatus() {
 }
 
 async function handleApi(req, res) {
+  if (req.method === "GET" && req.url.startsWith("/api/live/readiness")) return json(res, 200, liveReadiness());
+  if (req.method === "POST" && req.url.startsWith("/api/live/")) return json(res, 403, {error:"Live trading locked. No verified execution adapter installed."});
   if (req.method === "GET" && req.url.startsWith("/api/market")) {
     return json(res, 200, await marketPayload());
   }
