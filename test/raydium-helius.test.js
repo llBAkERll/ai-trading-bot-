@@ -2,8 +2,11 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {createRaydiumHeliusQuotes} from "../src/raydium-helius-quotes.js";
 test("Raydium output and Helius priority fee are accounted once",async()=>{
- const fetchImpl=async (url)=>{
+ const fetchImpl=async (url,options)=>{
   if(String(url).includes("raydium")) return {ok:true,json:async()=>({success:true,data:{outputAmount:"2500000000",priceImpactPct:0.2,routePlan:[{feeAmount:"1000"}]}})};
+  const request=JSON.parse(options.body);
+  assert.equal(request.method,"getPriorityFeeEstimate");
+  assert.deepEqual(request.params[0].accountKeys,["EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v","TOKEN"]);
   return {ok:true,json:async()=>({result:{priorityFeeEstimate:100000}})};
  };
  const quote=createRaydiumHeliusQuotes({rpcUrl:"https://example.invalid",decimalsForMint:async()=>9,solPriceUsd:async()=>200,fetchImpl});
