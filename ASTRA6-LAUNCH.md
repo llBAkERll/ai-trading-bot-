@@ -66,3 +66,13 @@ npm run dev
 The bot obtains Raydium swap quotes and Helius priority-fee estimates on each paper entry/exit re-quote. Pool fees are included in Raydium output amounts and **not charged again**. Network and priority fees are converted from SOL into USDC using a current SOL/USD market price. A 250,000-compute-unit assumption is used; this is not an exact fee for a constructed transaction. Token-account creation, rent, MEV tips, and transaction failure remain unverified.
 
 The simulation fails closed when no route or fee estimate is available. Raydium quotes do not cover all Solana liquidity sources. This is still **paper only**; quotes are not proof of confirmed execution. The auto cycle remains every 30 seconds, not every 100 milliseconds.
+
+## Separate Paper and Live pages
+
+- Paper demo: http://localhost:3010/
+- Live control center: http://localhost:3010/live.html
+- Readiness endpoint: http://localhost:3010/api/live/readiness
+
+The live page is a **locked preparation interface**, not a live trading service. Live API POST requests return HTTP 403. A browser wallet connection only proves access to an address; it does not enable unattended signing or real orders. Never paste a seed phrase or private key into the website.
+
+Before live auto trading can be unlocked, implement and test: transaction simulation, explicit order sizing and token allow/block rules, secure wallet signing architecture, confirmation tracking, failed transaction and duplicate-order recovery, fee and rent reserves, balance reconciliation, stop/kill controls, and audited deployment access controls. The current server should run only on a trusted machine and must not be publicly exposed without authentication.
