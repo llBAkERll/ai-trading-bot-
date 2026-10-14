@@ -58,7 +58,10 @@ export async function runAstraCycle(config) {
     events.push({at:new Date().toISOString(),type:result.status==="simulated_fill"?"sell":"rejected_sell",token:position.baseSymbol,reason:result.reason||reason,pnlUsdc:result.trade?.pnlUsdc||0,valueUsdc:result.trade?.exitValueUsdc||0});
    } catch(error) {events.push({at:new Date().toISOString(),type:"quote_error",token:position.baseSymbol,reason:error.message});}
   }
-  for(const candidate of candidates.slice(0,8)) {
+  const routedCandidates=process.env.ASTRA6_QUOTE_MODE?.startsWith("raydium")
+   ? candidates.filter(candidate=>pairs.some(pair=>pair.baseAddress===candidate.baseAddress&&String(pair.dexId||"").toLowerCase().includes("raydium")))
+   : candidates;
+  for(const candidate of routedCandidates.slice(0,8)) {
    if(state.positions.length>=4) break;
    try {
     const result=await astraEntry({state,candidate,quoteProvider:quotes});
