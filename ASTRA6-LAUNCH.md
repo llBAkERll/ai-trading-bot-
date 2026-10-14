@@ -52,3 +52,17 @@ Run all tests with:
 ```powershell
 node --test
 ```
+
+## Recommended: Raydium + Helius real-time fee mode
+
+Create a Helius account and obtain a mainnet RPC URL. In PowerShell:
+
+```powershell
+$env:ASTRA6_QUOTE_MODE="raydium-helius"
+$env:HELIUS_RPC_URL="YOUR_HELIUS_MAINNET_RPC_URL"
+npm run dev
+```
+
+The bot obtains Raydium swap quotes and Helius priority-fee estimates on each paper entry/exit re-quote. Pool fees are included in Raydium output amounts and **not charged again**. Network and priority fees are converted from SOL into USDC using a current SOL/USD market price. A 250,000-compute-unit assumption is used; this is not an exact fee for a constructed transaction. Token-account creation, rent, MEV tips, and transaction failure remain unverified.
+
+The simulation fails closed when no route or fee estimate is available. Raydium quotes do not cover all Solana liquidity sources. This is still **paper only**; quotes are not proof of confirmed execution. The auto cycle remains every 30 seconds, not every 100 milliseconds.
