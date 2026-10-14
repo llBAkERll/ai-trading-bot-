@@ -6,7 +6,7 @@ import {indicativeQuoteProvider} from "./astra6-quote-provider.js";
 import {executionRecord,summarizeExecution} from "./astra6-execution-telemetry.js";
 import {createJupiterQuoteProvider} from "./jupiter-quote-only.js";
 import {createRaydiumHeliusQuotes} from "./raydium-helius-quotes.js";
-import {searchSolanaPairs} from "./dexscreener.js";
+import {searchSolanaPairs,getPairsByTokenAddresses} from "./dexscreener.js";
 const USDC_MINT="EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
 async function tokenDecimals(mint) {
  const rpc=process.env.SOLANA_RPC_URL||process.env.SOLANA_PUBLIC_RPC_URL;
@@ -36,16 +36,29 @@ export async function runAstraCycle(config) {
  running=true;
  try {
   const state=initializeAstraState(loadState(config));
-  const pairs=(await discoverSolanaPairs(config)).map(normalizePair);
+  const discovered=(await discoverSolanaPairs(config)).map(normalizePair);
+  // Watch existing holdings independently of the changing discovery shortlist.
+  const heldAddresses=state.positions.map(position=>position.baseAddress).filter(Boolean);
+  const heldPairs=heldAddresses.length?(await getPairsByTokenAddresses(heldAddresses)).map(normalizePair):[];
+  const pairs=[...discovered,...heldPairs];
   const candidates=selectCandidates(pairs,config);
-  const market=new Map(pairs.map(p=>[p.baseAddress,p]));
+  const market=new Map();
+  for(const pair of pairs) {
+   if(!pair.priceUsd) continue;
+   const prior=market.get(pair.baseAddress);
+   if(!prior||pair.liquidityUsd>prior.liquidityUsd) market.set(pair.baseAddress,pair);
+  }
   const events=[];
   state.executionRecords=state.executionRecords||[];
   for(const position of [...state.positions]) {
    const pair=market.get(position.baseAddress);
-   if(!pair?.priceUsd) continue;
+   if(!pair?.priceUsd) {
+    events.push({at:new Date().toISOString(),type:"price_unavailable",token:position.baseSymbol,reason:"No current price for held token; position remains open"});
+    continue;
+   }
    position.lastPriceUsd=pair.priceUsd;
    position.lastValueUsdc=position.tokenAmount*pair.priceUsd;
+   position.unrealizedPnlPct=(position.lastValueUsdc/position.entryValueUsdc-1)*100;
    position.highWaterPriceUsd=Math.max(position.highWaterPriceUsd||position.entryPriceUsd,pair.priceUsd);
    const pnl=(pair.priceUsd/position.entryPriceUsd-1)*100;
    const drawdown=(1-pair.priceUsd/position.highWaterPriceUsd)*100;
