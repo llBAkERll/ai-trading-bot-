@@ -58,37 +58,8 @@ async function marketPayload() {
 }
 
 async function runDemoBot() {
-  const tunedConfig = activeConfig();
-  const state = loadState(tunedConfig);
-  const rawPairs = await discoverSolanaPairs(tunedConfig);
-  const pairs = rawPairs.map(normalizePair);
-  const candidates = selectCandidates(pairs, tunedConfig);
-  const result = await runAstraCycle(tunedConfig);
-  const closed = [];
-  const opened = [];
-  if (result.skipped) return result;
-  saveState(tunedConfig, state);
-  const events = [
-    ...closed.map((trade) => ({
-      at: trade.exitAt,
-      type: "sell",
-      token: trade.baseSymbol,
-      reason: trade.exitReason,
-      pnlPct: trade.pnlPct,
-      pnlUsdc: trade.pnlUsdc,
-      valueUsdc: trade.exitValueUsdc
-    })),
-    ...opened.map((position) => ({
-      at: position.openedAt,
-      type: "buy",
-      token: position.baseSymbol,
-      reason: "candidate_score",
-      score: position.scoreAtEntry,
-      valueUsdc: position.entryValueUsdc
-    }))
-  ];
-  autoEvents = [...events, ...autoEvents].slice(0, 50);
-  autoEvents = [...result.events, ...autoEvents].slice(0, 50);
+  const result = await runAstraCycle(activeConfig());
+  if (!result.skipped) autoEvents = [...result.events, ...autoEvents].slice(0, 50);
   return result;
 }
 
