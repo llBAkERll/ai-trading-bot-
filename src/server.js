@@ -1,5 +1,6 @@
 import http from "node:http";
 import {liveReadiness} from "./astra6-live-readiness.js";
+import {summarizeExecution} from "./astra6-execution-telemetry.js";
 import {runAstraCycle} from "./astra6-runner.js";
 import fs from "node:fs";
 import path from "node:path";
@@ -120,7 +121,7 @@ async function handleApi(req, res) {
       .filter(([, memory]) => memory.avoidUntil || Number(memory.losses || 0) >= tunedConfig.maxTokenLosses)
       .map(([address, memory]) => ({ address, ...memory }))
       .slice(0, 25);
-    return json(res, 200, { summary: summarizeState(state), positions: state.positions, closedTrades: state.closedTrades?.slice(0, 20) || [], avoidedTokens, auto: autoStatus() });
+    return json(res, 200, { summary: summarizeState(state), executionMetrics:summarizeExecution(state.executionRecords), positions: state.positions, closedTrades: state.closedTrades?.slice(0, 20) || [], avoidedTokens, auto: autoStatus() });
   }
 
   if (req.method === "POST" && req.url.startsWith("/api/demo/run")) {
