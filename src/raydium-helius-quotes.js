@@ -21,7 +21,10 @@ export function createRaydiumHeliusQuotes({rpcUrl,decimalsForMint,solPriceUsd,fe
   if(!quoteResponse.ok) throw new Error("Raydium HTTP "+quoteResponse.status);
   if(!freeRpc&&!feeResponse.ok) throw new Error("Helius HTTP "+feeResponse.status);
   const [quote,fees]=await Promise.all([quoteResponse.json(),freeRpc?feeResponse:feeResponse.json()]);
-  if(quote.success!==true||!quote.data?.outputAmount) throw new Error("Raydium route unavailable");
+  if(quote.success!==true||!quote.data?.outputAmount) {
+   const detail=quote.msg||quote.message||quote.error?.message||quote.error||"no supported swap route for this token";
+   throw new Error("Raydium route unavailable: "+String(detail).slice(0,180));
+  }
   const microLamports=freeRpc?null:Number(fees.result?.priorityFeeEstimate);
   if(!freeRpc&&(!Number.isFinite(microLamports)||microLamports<0)) throw new Error("Helius fee estimate unavailable");
   if(!Number.isFinite(solUsd)||solUsd<=0) throw new Error("SOL/USD unavailable");
