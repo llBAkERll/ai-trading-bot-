@@ -1,4 +1,5 @@
 import http from "node:http";
+import {runAstraCycle} from "./astra6-runner.js";
 import fs from "node:fs";
 import path from "node:path";
 import { config } from "./config.js";
@@ -62,8 +63,10 @@ async function runDemoBot() {
   const rawPairs = await discoverSolanaPairs(tunedConfig);
   const pairs = rawPairs.map(normalizePair);
   const candidates = selectCandidates(pairs, tunedConfig);
-  const closed = markPositions(state, pairs, tunedConfig);
-  const opened = openPaperPositions(state, candidates, tunedConfig);
+  const result = await runAstraCycle(tunedConfig);
+  const closed = [];
+  const opened = [];
+  if (result.skipped) return result;
   saveState(tunedConfig, state);
   const events = [
     ...closed.map((trade) => ({
@@ -85,7 +88,8 @@ async function runDemoBot() {
     }))
   ];
   autoEvents = [...events, ...autoEvents].slice(0, 50);
-  return { summary: summarizeState(state), positions: state.positions, closed, opened, events };
+  autoEvents = [...result.events, ...autoEvents].slice(0, 50);
+  return result;
 }
 
 async function autoCycle() {
