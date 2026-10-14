@@ -9,7 +9,7 @@ import {createRaydiumHeliusQuotes} from "./raydium-helius-quotes.js";
 import {searchSolanaPairs} from "./dexscreener.js";
 const USDC_MINT="EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
 async function tokenDecimals(mint) {
- const rpc=process.env.SOLANA_RPC_URL;
+ const rpc=process.env.SOLANA_RPC_URL||process.env.SOLANA_PUBLIC_RPC_URL;
  if(!rpc && !process.env.HELIUS_RPC_URL) throw new Error("RPC URL required for token decimals");
  const response=await fetch(rpc||process.env.HELIUS_RPC_URL,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({jsonrpc:"2.0",id:1,method:"getTokenSupply",params:[mint]})});
  if(!response.ok) throw new Error("RPC HTTP "+response.status);
@@ -23,7 +23,9 @@ async function solPriceUsd() {
  if(!pairs.length) throw new Error("SOL/USD unavailable");
  return pairs[0].priceUsd;
 }
-const quotes=process.env.ASTRA6_QUOTE_MODE==="raydium-helius"
+const quotes=process.env.ASTRA6_QUOTE_MODE==="raydium-free"
+ ? createRaydiumHeliusQuotes({rpcUrl:process.env.SOLANA_PUBLIC_RPC_URL||"https://api.mainnet-beta.solana.com",decimalsForMint:tokenDecimals,solPriceUsd,freeRpc:true})
+ : process.env.ASTRA6_QUOTE_MODE==="raydium-helius"
  ? createRaydiumHeliusQuotes({rpcUrl:process.env.HELIUS_RPC_URL,decimalsForMint:tokenDecimals,solPriceUsd})
  : process.env.ASTRA6_QUOTE_MODE==="jupiter"
  ? createJupiterQuoteProvider({apiKey:process.env.JUPITER_API_KEY,usdcMint:USDC_MINT,decimalsForMint:tokenDecimals})
@@ -67,6 +69,6 @@ export async function runAstraCycle(config) {
   }
   state.executionRecords=state.executionRecords.slice(-1000);
   saveState(config,state);
-  return {summary:summarizeState(state),positions:state.positions,events,executionMetrics:summarizeExecution(state.executionRecords),mode:process.env.ASTRA6_QUOTE_MODE==="raydium-helius"?"raydium_helius_paper":process.env.ASTRA6_QUOTE_MODE==="jupiter"?"jupiter_quote_paper":"indicative_paper"};
+  return {summary:summarizeState(state),positions:state.positions,events,executionMetrics:summarizeExecution(state.executionRecords),mode:process.env.ASTRA6_QUOTE_MODE==="raydium-free"?"raydium_free_paper":process.env.ASTRA6_QUOTE_MODE==="raydium-helius"?"raydium_helius_paper":process.env.ASTRA6_QUOTE_MODE==="jupiter"?"jupiter_quote_paper":"indicative_paper"};
  } finally {running=false;}
 }
