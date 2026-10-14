@@ -3,6 +3,7 @@ import {selectCandidates} from "./strategy.js";
 import {loadState,saveState,summarizeState} from "./portfolio.js";
 import {astraEntry,astraExit,initializeAstraState} from "./astra6-trading-loop.js";
 import {indicativeQuoteProvider} from "./astra6-quote-provider.js";
+import {executionRecord,summarizeExecution} from "./astra6-execution-telemetry.js";
 import {createJupiterQuoteProvider} from "./jupiter-quote-only.js";
 import {createRaydiumHeliusQuotes} from "./raydium-helius-quotes.js";
 import {searchSolanaPairs} from "./dexscreener.js";
@@ -37,6 +38,7 @@ export async function runAstraCycle(config) {
   const candidates=selectCandidates(pairs,config);
   const market=new Map(pairs.map(p=>[p.baseAddress,p]));
   const events=[];
+  state.executionRecords=state.executionRecords||[];
   for(const position of [...state.positions]) {
    const pair=market.get(position.baseAddress);
    if(!pair?.priceUsd) continue;
@@ -50,6 +52,7 @@ export async function runAstraCycle(config) {
    if(!reason) continue;
    try {
     const result=await astraExit({state,positionId:position.id,quoteProvider:quotes,reason});
+    if(result.status==="simulated_fill") state.executionRecords.push(executionRecord({side:"sell",tokenAddress:position.baseAddress,execution:result.execution,quoteSource:result.execution.source}));
     events.push({at:new Date().toISOString(),type:result.status==="simulated_fill"?"sell":"rejected_sell",token:position.baseSymbol,reason:result.reason||reason,pnlUsdc:result.trade?.pnlUsdc||0,valueUsdc:result.trade?.exitValueUsdc||0});
    } catch(error) {events.push({at:new Date().toISOString(),type:"quote_error",token:position.baseSymbol,reason:error.message});}
   }
@@ -57,11 +60,13 @@ export async function runAstraCycle(config) {
    if(state.positions.length>=4) break;
    try {
     const result=await astraEntry({state,candidate,quoteProvider:quotes});
+    if(result.status==="simulated_fill") state.executionRecords.push(executionRecord({side:"buy",tokenAddress:candidate.baseAddress,execution:result.execution,quoteSource:result.execution.source}));
     if(result.status==="simulated_fill") events.push({at:new Date().toISOString(),type:"buy",token:candidate.baseSymbol,reason:"scored_entry",score:candidate.score,valueUsdc:result.position.entryValueUsdc});
     else if(["daily_loss_limit","exposure_or_cash_limit"].includes(result.reason)) break;
    } catch(error) {events.push({at:new Date().toISOString(),type:"quote_error",token:candidate.baseSymbol,reason:error.message});}
   }
+  state.executionRecords=state.executionRecords.slice(-1000);
   saveState(config,state);
-  return {summary:summarizeState(state),positions:state.positions,events,mode:process.env.ASTRA6_QUOTE_MODE==="raydium-helius"?"raydium_helius_paper":process.env.ASTRA6_QUOTE_MODE==="jupiter"?"jupiter_quote_paper":"indicative_paper"};
+  return {summary:summarizeState(state),positions:state.positions,events,executionMetrics:summarizeExecution(state.executionRecords),mode:process.env.ASTRA6_QUOTE_MODE==="raydium-helius"?"raydium_helius_paper":process.env.ASTRA6_QUOTE_MODE==="jupiter"?"jupiter_quote_paper":"indicative_paper"};
  } finally {running=false;}
 }
