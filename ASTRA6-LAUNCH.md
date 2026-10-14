@@ -31,3 +31,24 @@ node --test test/astra6-paper.test.js
 ```
 
 The engine is not ready for real wallet funds. No private keys are required.
+
+## Jupiter quote-only paper mode
+
+Jupiter quote requests require an API key and a working Solana RPC endpoint. In PowerShell, before starting the server:
+
+```powershell
+$env:ASTRA6_QUOTE_MODE="jupiter"
+$env:JUPITER_API_KEY="YOUR_JUPITER_API_KEY"
+$env:SOLANA_RPC_URL="YOUR_SOLANA_RPC_URL"
+npm run dev
+```
+
+Do not commit API keys to GitHub. These settings are read from the running PowerShell environment; `.env.local` is not used for the Jupiter-specific variables in this version.
+
+This uses read-only swap quotes. It does not submit transactions, verify fills, model priority-fee spikes accurately, or guarantee that quoted routes would still be executable after the delay. Missing API keys or unavailable routes should fail closed, not generate fabricated profits.
+
+Run all tests with:
+
+```powershell
+node --test
+```
