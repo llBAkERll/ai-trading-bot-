@@ -4,18 +4,27 @@ import {loadState,saveState,summarizeState} from "./portfolio.js";
 import {astraEntry,astraExit,initializeAstraState} from "./astra6-trading-loop.js";
 import {indicativeQuoteProvider} from "./astra6-quote-provider.js";
 import {createJupiterQuoteProvider} from "./jupiter-quote-only.js";
+import {createRaydiumHeliusQuotes} from "./raydium-helius-quotes.js";
+import {searchSolanaPairs} from "./dexscreener.js";
 const USDC_MINT="EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
 async function tokenDecimals(mint) {
  const rpc=process.env.SOLANA_RPC_URL;
- if(!rpc) throw new Error("SOLANA_RPC_URL is required for Jupiter quote mode");
- const response=await fetch(rpc,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({jsonrpc:"2.0",id:1,method:"getTokenSupply",params:[mint]})});
+ if(!rpc && !process.env.HELIUS_RPC_URL) throw new Error("RPC URL required for token decimals");
+ const response=await fetch(rpc||process.env.HELIUS_RPC_URL,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({jsonrpc:"2.0",id:1,method:"getTokenSupply",params:[mint]})});
  if(!response.ok) throw new Error("RPC HTTP "+response.status);
  const data=await response.json();
  const value=data?.result?.value?.decimals;
  if(!Number.isInteger(value)) throw new Error("Token decimals unavailable");
  return value;
 }
-const quotes=process.env.ASTRA6_QUOTE_MODE==="jupiter"
+async function solPriceUsd() {
+ const pairs=(await searchSolanaPairs("SOL USDC")).map(normalizePair).filter(p=>p.baseSymbol==="SOL"&&p.priceUsd>0).sort((a,b)=>b.liquidityUsd-a.liquidityUsd);
+ if(!pairs.length) throw new Error("SOL/USD unavailable");
+ return pairs[0].priceUsd;
+}
+const quotes=process.env.ASTRA6_QUOTE_MODE==="raydium-helius"
+ ? createRaydiumHeliusQuotes({rpcUrl:process.env.HELIUS_RPC_URL,decimalsForMint:tokenDecimals,solPriceUsd})
+ : process.env.ASTRA6_QUOTE_MODE==="jupiter"
  ? createJupiterQuoteProvider({apiKey:process.env.JUPITER_API_KEY,usdcMint:USDC_MINT,decimalsForMint:tokenDecimals})
  : indicativeQuoteProvider();
 let running=false;
@@ -53,6 +62,6 @@ export async function runAstraCycle(config) {
    } catch(error) {events.push({at:new Date().toISOString(),type:"quote_error",token:candidate.baseSymbol,reason:error.message});}
   }
   saveState(config,state);
-  return {summary:summarizeState(state),positions:state.positions,events,mode:process.env.ASTRA6_QUOTE_MODE==="jupiter"?"jupiter_quote_paper":"indicative_paper"};
+  return {summary:summarizeState(state),positions:state.positions,events,mode:process.env.ASTRA6_QUOTE_MODE==="raydium-helius"?"raydium_helius_paper":process.env.ASTRA6_QUOTE_MODE==="jupiter"?"jupiter_quote_paper":"indicative_paper"};
  } finally {running=false;}
 }
