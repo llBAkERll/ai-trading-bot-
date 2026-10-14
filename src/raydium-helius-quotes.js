@@ -14,7 +14,7 @@ export function createRaydiumHeliusQuotes({rpcUrl,decimalsForMint,solPriceUsd,fe
   const query=new URLSearchParams({inputMint:buy?usdcMint:tokenAddress,outputMint:buy?tokenAddress:usdcMint,amount:rawAmount.toString(),slippageBps:"200",txVersion:"V0"});
   const [quoteResponse,feeResponse,solUsd]=await Promise.all([
    fetchImpl("https://transaction-v1.raydium.io/compute/swap-base-in?"+query),
-   fetchImpl(rpcUrl,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({jsonrpc:"2.0",id:1,method:"getPriorityFeeEstimate",params:[{options:{recommended:true}}]})}),
+   fetchImpl(rpcUrl,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({jsonrpc:"2.0",id:1,method:"getPriorityFeeEstimate",params:[{accountKeys:[buy?usdcMint:tokenAddress,buy?tokenAddress:usdcMint],options:{recommended:true}}]})}),
    solPriceUsd()
   ]);
   if(!quoteResponse.ok) throw new Error("Raydium HTTP "+quoteResponse.status);
@@ -29,6 +29,6 @@ export function createRaydiumHeliusQuotes({rpcUrl,decimalsForMint,solPriceUsd,fe
   const baseFeeSol=5000/1e9;
   const priceImpactBps=Number(quote.data.priceImpactPct||0)*100;
   if(!Number.isFinite(outputAmount)||outputAmount<=0||!Number.isFinite(priceImpactBps)) throw new Error("Invalid quote data");
-  return {inputAmount:amount,outputAmount,timestampMs:Date.now(),priceImpactBps,networkFeeUsdc:baseFeeSol*solUsd,priorityFeeUsdc:priorityFeeSol*solUsd,routingFeeUsdc:0,source:"raydium_helius_paper",poolFeesIncludedInOutput:true,priorityFeeMicroLamports:microLamports,computeUnitsAssumed:computeUnits,routePlan:quote.data.routePlan||[]};
+  return {inputAmount:amount,outputAmount,timestampMs:Date.now(),priceImpactBps,networkFeeUsdc:baseFeeSol*solUsd,priorityFeeUsdc:priorityFeeSol*solUsd,routingFeeUsdc:0,source:"raydium_helius_paper",poolFeesIncludedInOutput:true,priorityFeeMicroLamports:microLamports,feeEstimateScope:"token_mints_only",computeUnitsAssumed:computeUnits,routePlan:quote.data.routePlan||[]};
  };
 }
