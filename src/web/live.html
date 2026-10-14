@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Astra 6 — Live Trading</title><link rel="stylesheet" href="/styles.css"></head>
+<body><main class="app-shell">
+<section class="hero"><div><p class="eyebrow">ASTRA 6 / LIVE</p><h1>Real-money trading control center</h1><p class="hero-copy">Separate from the paper portfolio. Real-money execution is currently locked while safety and connectivity validation is completed.</p><p><a href="/">← Paper trading dashboard</a></p></div></section>
+<section class="metrics-grid"><article><span>Execution</span><strong id="liveStatus">Checking...</strong></article><article><span>Wallet custody</span><strong>Not configured</strong></article><article><span>Real capital at risk</span><strong>$0</strong></article><article><span>Auto orders</span><strong>Disabled</strong></article></section>
+<section class="panel"><h2>Live launch checklist</h2><p id="liveReason" class="status-text">Loading readiness checks...</p><div id="liveChecks" class="event-feed"></div></section>
+<section class="panel"><h2>Live controls</h2><p>Start, stop, and wallet authorization will only become available after transaction execution, simulation, confirmation, reconciliation, and kill-switch testing are complete.</p><button disabled title="Locked until verification">Start real auto trading — locked</button></section>
+</main><script>
+fetch("/api/live/readiness").then(r=>r.json()).then(d=>{
+ document.querySelector("#liveStatus").textContent=d.ready?"Ready":"Locked";
+ document.querySelector("#liveReason").textContent=d.reason;
+ const root=document.querySelector("#liveChecks");
+ for(const [key,value] of Object.entries(d.checks)){const p=document.createElement("p");p.textContent=(value?"✓ ":"○ ")+key.replaceAll("_"," ");root.append(p);}
+}).catch(e=>{document.querySelector("#liveStatus").textContent="Unavailable";document.querySelector("#liveReason").textContent=e.message;});
+</script></body></html>

@@ -125,6 +125,11 @@ async function loadStatus() {
   renderPositions(data.positions);
   renderAuto(data.auto);
   renderAvoided(data.avoidedTokens);
+  const metrics=data.executionMetrics||{};
+  document.querySelector("#executionFees").textContent=money(metrics.estimatedFeesUsdc);
+  document.querySelector("#executionSlippage").textContent=Number(metrics.averageRequoteSlippageBps||0).toFixed(2)+" bps";
+  document.querySelector("#executionDelay").textContent=Math.round(metrics.averageDelayMs||0)+" ms";
+  document.querySelector("#executionFills").textContent=String(metrics.paperFills||0);
 }
 
 async function connectWallet() {

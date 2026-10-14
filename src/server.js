@@ -1,4 +1,7 @@
 import http from "node:http";
+import {liveReadiness} from "./astra6-live-readiness.js";
+import {summarizeExecution} from "./astra6-execution-telemetry.js";
+import {runAstraCycle} from "./astra6-runner.js";
 import fs from "node:fs";
 import path from "node:path";
 import { config } from "./config.js";
@@ -57,35 +60,9 @@ async function marketPayload() {
 }
 
 async function runDemoBot() {
-  const tunedConfig = activeConfig();
-  const state = loadState(tunedConfig);
-  const rawPairs = await discoverSolanaPairs(tunedConfig);
-  const pairs = rawPairs.map(normalizePair);
-  const candidates = selectCandidates(pairs, tunedConfig);
-  const closed = markPositions(state, pairs, tunedConfig);
-  const opened = openPaperPositions(state, candidates, tunedConfig);
-  saveState(tunedConfig, state);
-  const events = [
-    ...closed.map((trade) => ({
-      at: trade.exitAt,
-      type: "sell",
-      token: trade.baseSymbol,
-      reason: trade.exitReason,
-      pnlPct: trade.pnlPct,
-      pnlUsdc: trade.pnlUsdc,
-      valueUsdc: trade.exitValueUsdc
-    })),
-    ...opened.map((position) => ({
-      at: position.openedAt,
-      type: "buy",
-      token: position.baseSymbol,
-      reason: "candidate_score",
-      score: position.scoreAtEntry,
-      valueUsdc: position.entryValueUsdc
-    }))
-  ];
-  autoEvents = [...events, ...autoEvents].slice(0, 50);
-  return { summary: summarizeState(state), positions: state.positions, closed, opened, events };
+  const result = await runAstraCycle(activeConfig());
+  if (!result.skipped) autoEvents = [...result.events, ...autoEvents].slice(0, 50);
+  return result;
 }
 
 async function autoCycle() {
@@ -127,6 +104,8 @@ function autoStatus() {
 }
 
 async function handleApi(req, res) {
+  if (req.method === "GET" && req.url.startsWith("/api/live/readiness")) return json(res, 200, liveReadiness());
+  if (req.method === "POST" && req.url.startsWith("/api/live/")) return json(res, 403, {error:"Live trading locked. No verified execution adapter installed."});
   if (req.method === "GET" && req.url.startsWith("/api/market")) {
     return json(res, 200, await marketPayload());
   }
@@ -142,7 +121,7 @@ async function handleApi(req, res) {
       .filter(([, memory]) => memory.avoidUntil || Number(memory.losses || 0) >= tunedConfig.maxTokenLosses)
       .map(([address, memory]) => ({ address, ...memory }))
       .slice(0, 25);
-    return json(res, 200, { summary: summarizeState(state), positions: state.positions, closedTrades: state.closedTrades?.slice(0, 20) || [], avoidedTokens, auto: autoStatus() });
+    return json(res, 200, { summary: summarizeState(state), executionMetrics:summarizeExecution(state.executionRecords), positions: state.positions, closedTrades: state.closedTrades?.slice(0, 20) || [], avoidedTokens, auto: autoStatus() });
   }
 
   if (req.method === "POST" && req.url.startsWith("/api/demo/run")) {
